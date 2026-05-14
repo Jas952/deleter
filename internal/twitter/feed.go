@@ -2,6 +2,7 @@ package twitter
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -24,11 +25,11 @@ type LogEntry struct {
 }
 
 func (c *Client) CleanFeed(stats *Stats) error {
-	return c.CleanFeedWithLogs(stats, nil)
+	return c.CleanFeedWithLogs(context.Background(), stats, nil)
 }
 
 // CleanFeedWithLogs runs cleaning and sends log entries to the provided channel
-func (c *Client) CleanFeedWithLogs(stats *Stats, logChan chan<- LogEntry) error {
+func (c *Client) CleanFeedWithLogs(ctx context.Context, stats *Stats, logChan chan<- LogEntry) error {
 	var cursor string
 	page := 0
 
@@ -58,6 +59,13 @@ func (c *Client) CleanFeedWithLogs(stats *Stats, logChan chan<- LogEntry) error 
 		stats.Scanned += len(entries)
 
 		for _, e := range entries {
+			// Check for cancellation
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			default:
+			}
+
 			tweetID, text, tweetTime, isRetweet := c.extractTweetInfo(e)
 			if tweetID == "" || !isRetweet {
 				continue
@@ -93,7 +101,11 @@ func (c *Client) CleanFeedWithLogs(stats *Stats, logChan chan<- LogEntry) error 
 			}
 
 			if logChan != nil {
-				logChan <- entry
+				select {
+				case logChan <- entry:
+				case <-ctx.Done():
+					return ctx.Err()
+				}
 			}
 
 			time.Sleep(time.Duration(c.cfg.DeleteDelaySec) * time.Second)
@@ -312,7 +324,7 @@ func (c *Client) deleteRetweet(sourceTweetID string) error {
 
 	c.applyAuth(req)
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Referer", fmt.Sprintf("https://x.com/home"))
+	req.Header.Set("Referer", "https://x.com/home")
 
 	maxRetries := 3
 	for i := 0; i < maxRetries; i++ {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"deleter/internal/auth"
 	"deleter/internal/config"
 	"deleter/internal/twitter"
@@ -135,6 +136,7 @@ type model struct {
 	logs         []twitter.LogEntry
 	logChan      chan twitter.LogEntry
 	cleaningDone bool
+	cleanCancel  context.CancelFunc
 	sessionMgr   *auth.SessionManager
 	sessionDays  int
 	fromSession  bool // loaded from session or .env
@@ -218,11 +220,24 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "q", "Q":
+			if m.screen == screenCleaning && m.cleanCancel != nil {
+				m.cleanCancel()
+				m.cleaningDone = true
+				m.screen = screenCleanData
+				return m, nil
+			}
 			if m.screen != screenCleaning {
 				return m, tea.Quit
 			}
 		case "esc":
 			switch m.screen {
+			case screenCleaning:
+				if m.cleanCancel != nil {
+					m.cleanCancel()
+				}
+				m.cleaningDone = true
+				m.screen = screenCleanData
+				return m, nil
 			case screenMainMenu:
 				return m, tea.Quit
 			case screenSetup:
@@ -541,13 +556,18 @@ func (m model) handleSelection() (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m model) startCleaning() tea.Cmd {
+func (m *model) startCleaning() tea.Cmd {
 	return func() tea.Msg {
 		// Update config with current settings
 		m.cfg.Keywords = m.keywords
 		m.cfg.DeleteBeforeDate = m.deleteDate
+
+		// Create cancellable context
+		ctx, cancel := context.WithCancel(context.Background())
+		m.cleanCancel = cancel
+
 		stats := &twitter.Stats{}
-		err := m.client.CleanFeedWithLogs(stats, m.logChan)
+		err := m.client.CleanFeedWithLogs(ctx, stats, m.logChan)
 		return cleaningDoneMsg{stats: *stats, err: err}
 	}
 }
@@ -768,7 +788,7 @@ func (m model) viewCleaning() string {
 
 	if !m.cleaningDone {
 		s.WriteString("\n")
-		s.WriteString(infoStyle.Render("Processing... Press Q to quit"))
+		s.WriteString(infoStyle.Render("Processing... Press Q or ESC to stop and return to menu"))
 	}
 
 	return s.String()
