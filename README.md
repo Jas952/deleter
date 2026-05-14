@@ -1,53 +1,53 @@
-# Twitter Feed Cleaner (DELETER)
+# Twitter Feed Cleaner
 
-TUI app for automatically cleaning Twitter/X timeline from unwanted retweets.
-
-## Features
-
-- 🎨 Terminal UI with real-time logs
-- 🔍 Filter retweets by keywords
-- 📅 Date filter support
-- 💾 Session persistence (14 days)
-- 🎯 Interactive setup wizard
+TUI app to auto-delete retweets by keywords.
 
 ## Quick Start
 
 ```bash
-# Build
 go build -o deleter .
-
-# Run (first time - setup wizard starts automatically)
 ./deleter
 ```
 
-### Setup Process
+**First run:** Setup wizard starts automatically.
 
-1. Run `extract.js` in browser DevTools on x.com
-2. Copy output to the bot
-3. Enter `auth_token` from DevTools → Application → Cookies
-4. Done! Session saved for 14 days
+## Setup (3 Steps)
 
-See [SETUP.md](SETUP.md) for details.
+### 1. Extract Data from Browser
+
+Open `x.com`, login, press **F12** → **Console**, paste `extract.js` contents, press Enter.
+
+Copy the output line: `user_id|ct0|guest_id|query_id|query_id`
+
+### 2. Get auth_token (Manual)
+
+In DevTools:
+1. **Application** tab → **Cookies** → `https://x.com`
+2. Find **`auth_token`** row
+3. Double-click Value, copy it
+
+> `auth_token` is HttpOnly — browsers hide it from JavaScript. Must copy manually.
+
+### 3. Run Bot
+
+```bash
+./deleter
+```
+
+Paste extracted data → paste auth_token → done. Session valid 14 days.
+
+**Keys:** ENTER = next, ESC = back
+
+## Usage
+
+```bash
+./deleter                    # Start bot
+rm .session.json && ./deleter  # Reset session
+```
 
 ## How It Works
 
-Uses internal Twitter GraphQL API to:
-1. Fetch your timeline (`UserTweets`)
-2. Find retweets matching keywords
-3. Delete them via `DeleteRetweet` mutation
-
-## Project Structure
-
-```
-deleter/
-├── main.go          # TUI + setup wizard
-├── internal/        # Core logic
-│   ├── auth/        # Session management
-│   ├── config/      # Config loading
-│   └── twitter/     # API client
-├── extract.js       # Browser data extractor
-└── SETUP.md         # Detailed setup guide
-```
+Uses Twitter GraphQL API: fetches timeline → finds retweets matching keywords → deletes them.
 
 ## License
 
