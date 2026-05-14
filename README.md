@@ -49,7 +49,3 @@ rm .session.json && ./deleter  # Reset session
 
 Uses Twitter GraphQL API: fetches timeline → finds retweets matching keywords → deletes them.
 
-## License
-
-MIT. Use at your own risk.
-# deleter
