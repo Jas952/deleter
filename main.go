@@ -219,6 +219,8 @@ type cleaningDoneMsg struct {
 
 type interruptMsg struct{}
 
+type logMsg twitter.LogEntry
+
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -336,6 +338,22 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case configErrMsg:
 		m.err = msg.err
 		return m, tea.Quit
+
+	case logMsg:
+		entry := twitter.LogEntry(msg)
+		// Check for completion signals
+		if entry.Status == "__DONE__" {
+			m.cleaningDone = true
+			m.screen = screenResults
+			return m, nil
+		}
+		if entry.Status == "__ERROR__" {
+			m.err = fmt.Errorf("cleaning error: %s", entry.Error)
+			return m, tea.Quit
+		}
+		// Regular log entry
+		m.logs = append(m.logs, entry)
+		return m, m.waitForLog()
 
 	case cleaningDoneMsg:
 		m.stats = msg.stats
@@ -571,19 +589,28 @@ func (m model) handleSelection() (tea.Model, tea.Cmd) {
 }
 
 func (m *model) startCleaning() tea.Cmd {
-	return func() tea.Msg {
-		// Update config with current settings
-		m.cfg.Keywords = m.keywords
-		m.cfg.DeleteBeforeDate = m.deleteDate
+	// Update config with current settings
+	m.cfg.Keywords = m.keywords
+	m.cfg.DeleteBeforeDate = m.deleteDate
 
-		// Create cancellable context
-		ctx, cancel := context.WithCancel(context.Background())
-		m.cleanCancel = cancel
+	// Create cancellable context
+	ctx, cancel := context.WithCancel(context.Background())
+	m.cleanCancel = cancel
 
+	// Run in goroutine to not block UI
+	go func() {
 		stats := &twitter.Stats{}
 		err := m.client.CleanFeedWithLogs(ctx, stats, m.logChan)
-		return cleaningDoneMsg{stats: *stats, err: err}
-	}
+		// Send completion signal
+		if err != nil {
+			m.logChan <- twitter.LogEntry{Status: "__ERROR__", Error: err.Error()}
+		} else {
+			m.logChan <- twitter.LogEntry{Status: "__DONE__"}
+		}
+	}()
+
+	// Return immediately, start waiting for logs
+	return m.waitForLog()
 }
 
 func (m model) waitForLog() tea.Cmd {
