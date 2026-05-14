@@ -1,0 +1,8 @@
+.env
+.env.local
+.session.json
+*.log
+vendor/
+dist/
+build/
+deleter
