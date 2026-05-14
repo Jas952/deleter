@@ -2,7 +2,7 @@
 
 TUI app to auto-delete retweets by keywords.
 
-![Demo](assets/1.png)
+![Result](assets/2.png)
 
 ## Quick Start
 
@@ -54,10 +54,6 @@ Uses Twitter GraphQL API: fetches timeline → finds retweets matching keywords 
 <<<<<<< HEAD
 ## Result
 
-![Result](assets/2.png)
+![Demo](assets/1.png)
 
-## License
 
-MIT. Use at your own risk.
-=======
->>>>>>> 669f2d2c7d95d5f3832210fc3352b8fd85365c41
