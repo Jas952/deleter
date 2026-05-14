@@ -145,6 +145,8 @@ type model struct {
 	setup        setupData
 	setupStep    int
 	err          error
+	width        int
+	height       int
 }
 
 func initialModel() model {
@@ -223,6 +225,11 @@ type logMsg twitter.LogEntry
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.height = msg.Height
+		return m, nil
+
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "q", "Q":
@@ -693,10 +700,10 @@ func (m model) viewWelcome() string {
 		sessionInfo := fmt.Sprintf("✓ Session active (%d days left)", m.sessionDays)
 		info := fmt.Sprintf("User: %s | Keywords: %s | Date: %s | %s",
 			truncate(m.cfg.UserID, 15), strings.Join(m.keywords, ", "), dateInfo, sessionInfo)
-		s.WriteString(boxStyle.Render(infoStyle.Render(info)))
+		s.WriteString(boxStyle.Render(info))
 		s.WriteString("\n")
 	} else {
-		s.WriteString(boxStyle.Render(errorStyle.Render("⚠️  No active session - setup required")))
+		s.WriteString(boxStyle.Render("⚠️  No active session - setup required"))
 		s.WriteString("\n")
 		s.WriteString(infoStyle.Render("Press ENTER to start setup wizard"))
 		s.WriteString("\n")
@@ -851,11 +858,11 @@ func (m model) viewSession() string {
 	s.WriteString("\n")
 
 	if m.fromSession {
-		s.WriteString(boxStyle.Render(infoStyle.Render(fmt.Sprintf("✓ Session saved | %d days until expiry", m.sessionDays))))
+		s.WriteString(boxStyle.Render(fmt.Sprintf("✓ Session saved | %d days until expiry", m.sessionDays)))
 		s.WriteString(fmt.Sprintf("\nYour credentials are stored locally and will expire in %d days.\n", m.sessionDays))
 		s.WriteString(infoStyle.Render("Select 'Clear Session' to remove credentials and setup new ones."))
 	} else {
-		s.WriteString(boxStyle.Render(errorStyle.Render("⚠️  No active session")))
+		s.WriteString(boxStyle.Render("⚠️  No active session"))
 		s.WriteString("\nTwitter credentials are required to use this application.\n")
 		s.WriteString(infoStyle.Render("Select 'Add New Session' to launch the setup wizard."))
 	}
@@ -894,9 +901,9 @@ func (m model) viewResults() string {
 		m.stats.Deleted, m.stats.Errors)
 
 	if m.stats.Errors == 0 && m.stats.Deleted > 0 {
-		s.WriteString(successStyle.Render(boxStyle.Render(results)))
+		s.WriteString(boxStyle.Render(results))
 	} else if m.stats.Errors > 0 {
-		s.WriteString(errorStyle.Render(boxStyle.Render(results)))
+		s.WriteString(boxStyle.Render(results))
 	} else {
 		s.WriteString(boxStyle.Render(results))
 	}
