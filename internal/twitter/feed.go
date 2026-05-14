@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"strings"
@@ -108,7 +109,10 @@ func (c *Client) CleanFeedWithLogs(ctx context.Context, stats *Stats, logChan ch
 				}
 			}
 
-			time.Sleep(time.Duration(c.cfg.DeleteDelaySec) * time.Second)
+			// Add random jitter (±2s) to avoid pattern detection by rate limiters
+			jitter := time.Duration(rand.Intn(4000)-2000) * time.Millisecond
+			delay := time.Duration(c.cfg.DeleteDelaySec)*time.Second + jitter
+			time.Sleep(delay)
 		}
 
 		if nextCursor == "" {

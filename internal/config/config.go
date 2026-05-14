@@ -89,7 +89,8 @@ func (c *Config) SaveToSession(sm *auth.SessionManager) error {
 func buildConfig(userID string, cookies, headers map[string]any, qidTweets, qidDelete string) *Config {
 	keywords := parseKeywords(os.Getenv("KEYWORDS"))
 
-	delaySec := 3
+	// Default 10s delay to avoid Twitter rate limits (429 errors)
+	delaySec := 10
 	if v := os.Getenv("DELETE_DELAY_SEC"); v != "" {
 		if d, err := strconv.Atoi(v); err == nil && d > 0 {
 			delaySec = d
