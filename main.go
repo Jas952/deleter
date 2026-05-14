@@ -45,7 +45,8 @@ var (
 			PaddingLeft(1).
 			PaddingRight(1).
 			PaddingTop(0).
-			PaddingBottom(0)
+			PaddingBottom(0).
+			Inline(true)
 
 	selectedMenuItemStyle = lipgloss.NewStyle().
 				PaddingLeft(1).
@@ -54,12 +55,12 @@ var (
 				PaddingBottom(0).
 				Foreground(lipgloss.Color("#000000")).
 				Background(lipgloss.Color("#4ECDC4")).
-				Bold(true)
+				Bold(true).
+				Inline(true)
 
 	descriptionStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("#888888")).
-				Italic(true).
-				MarginBottom(1)
+				Italic(true)
 
 	infoStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#FFE66D"))
@@ -723,10 +724,12 @@ func (m model) viewMainMenu() string {
 	// Show session status
 	if m.fromSession && m.cfg != nil {
 		s.WriteString(infoStyle.Render(fmt.Sprintf("✓ Session active | User: %s | %d days left", truncate(m.cfg.UserID, 10), m.sessionDays)))
+		s.WriteString("\n")
 	} else {
 		s.WriteString(errorStyle.Render("⚠️  No session - select 'Session' to setup"))
+		s.WriteString("\n")
 	}
-	s.WriteString("\n\n")
+	s.WriteString("\n")
 
 	for i, item := range m.menuItems {
 		if i == m.menuIndex {
