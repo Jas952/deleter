@@ -7,7 +7,9 @@ import (
 	"deleter/internal/twitter"
 	"fmt"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/charmbracelet/bubbles/textinput"
@@ -215,6 +217,8 @@ type cleaningDoneMsg struct {
 	err   error
 }
 
+type interruptMsg struct{}
+
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -338,6 +342,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.cleaningDone = true
 		m.screen = screenResults
 		return m, nil
+
+	case interruptMsg:
+		// Handle Ctrl+C during cleaning
+		if m.screen == screenCleaning && m.cleanCancel != nil {
+			m.cleanCancel()
+			m.cleaningDone = true
+			m.screen = screenCleanData
+			return m, nil
+		}
+		return m, tea.Quit
 	}
 
 	// Handle text input for various screens
@@ -509,7 +523,7 @@ func (m model) handleSelection() (tea.Model, tea.Cmd) {
 			}
 			m.screen = screenCleaning
 			m.logs = []twitter.LogEntry{}
-			return m, tea.Batch(m.startCleaning(), m.waitForLog())
+			return m, tea.Batch(m.startCleaning(), m.waitForLog(), m.listenForSignals())
 		case 1: // Add Keywords
 			m.screen = screenAddKeywords
 			m.textInput.SetValue(strings.Join(m.keywords, ","))
@@ -575,6 +589,15 @@ func (m *model) startCleaning() tea.Cmd {
 func (m model) waitForLog() tea.Cmd {
 	return func() tea.Msg {
 		return <-m.logChan
+	}
+}
+
+func (m model) listenForSignals() tea.Cmd {
+	return func() tea.Msg {
+		sigChan := make(chan os.Signal, 1)
+		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+		<-sigChan
+		return interruptMsg{}
 	}
 }
 
