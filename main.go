@@ -243,6 +243,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.screen != screenCleaning {
 				return m, tea.Quit
 			}
+		case "ctrl+c":
+			// Handle Ctrl+C - stop cleaning if in progress, else quit
+			if m.screen == screenCleaning && m.cleanCancel != nil {
+				m.cleanCancel()
+				m.cleaningDone = true
+				m.screen = screenCleanData
+				return m, nil
+			}
+			return m, tea.Quit
 		case "esc":
 			switch m.screen {
 			case screenCleaning:
@@ -816,6 +825,12 @@ func (m model) viewCleaning() string {
 
 	s.WriteString(headerStyle.Render("Cleaning in Progress"))
 	s.WriteString("\n")
+
+	// Show help text at top
+	if !m.cleaningDone {
+		s.WriteString(infoStyle.Render("▶ Press Q, ESC or Ctrl+C to stop and return to menu"))
+		s.WriteString("\n\n")
+	}
 
 	// Show last logs (compact single line format)
 	if len(m.logs) > 0 {
