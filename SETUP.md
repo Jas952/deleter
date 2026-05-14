@@ -1,80 +1,145 @@
-# Quick Setup Guide
+# 🔧 Setup Guide for Twitter Feed Cleaner
 
-The bot now has an **interactive setup wizard** that guides you through the entire process with built-in instructions!
+This guide walks you through getting the required authentication tokens from Twitter/X.
 
-## First Run - Interactive Setup
+## Overview
 
-When you run `./deleter` without a saved session, the bot will automatically start the setup wizard:
+The bot needs **5 pieces of information** to work:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  1. User ID         ───── from twid cookie                 │
+│  2. ct0 (CSRF)      ───── from browser cookie               │
+│  3. guest_id        ───── from browser cookie               │
+│  4. Query IDs       ───── from page source  ← auto-extracted │
+│  5. auth_token      ───── from DevTools     ← manual step  │
+└─────────────────────────────────────────────────────────────┘
+           ↑                         ↑
+    extract.js gets these    You copy this manually
+```
+
+> **Why manual for auth_token?** It's an **HttpOnly cookie** - browsers intentionally hide it from JavaScript for security. You must copy it manually from DevTools.
+
+---
+
+## Step 1: Run extract.js in Browser
+
+### 1.1 Open Twitter
+- Go to **x.com** and **login** to your account
+- Make sure you're on the main feed (twitter.com/home)
+
+### 1.2 Open DevTools Console
+```
+┌──────────────────────────────────────────────────┐
+│  Windows/Linux:  Press F12  or  Ctrl+Shift+J     │
+│  Mac:             Press F12  or  Cmd+Option+J    │
+└──────────────────────────────────────────────────┘
+```
+
+### 1.3 Run the Script
+1. Open the file `extract.js` from this project folder
+2. Copy **all** the code (Ctrl+A, Ctrl+C)
+3. Paste into the DevTools Console
+4. Press **Enter**
+
+### 1.4 Copy the Output
+You'll see something like:
+```
+========================================
+COPY THIS LINE AND PASTE INTO BOT:
+123456789|a1b2c3d4...|v1%3A123...|36rb3Xj3...|ZyZigVsN...
+========================================
+✅ Automatically copied to clipboard!
+```
+
+**Copy this line** (it's also auto-copied to your clipboard).
+
+---
+
+## Step 2: Get auth_token (Manual Step)
+
+This is the **most important** step. Follow carefully:
+
+### 2.1 Switch to Application Tab
+```
+┌────────────────────────────────────────────┐
+│  Console | Elements | Network | Sources |   │
+│                              ↓             │
+│  >>> Application <<<  |  Performance        │
+└────────────────────────────────────────────┘
+                 ↑
+         Click here
+```
+
+### 2.2 Navigate to Cookies
+```
+┌────────────────────────────────────────────────────┐
+│  Storage                                            │
+│  ├── ▶ Local Storage                                │
+│  ├── ▶ Session Storage                            │
+│  ├── ▷ Cookies                                     │
+│  │      └── ▶ https://x.com  ←─── CLICK THIS      │
+└────────────────────────────────────────────────────┘
+```
+
+### 2.3 Find and Copy auth_token
+You'll see a table. Look for the row:
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  Name           │  Value                                      │
+├──────────────────────────────────────────────────────────────┤
+│  ct0            │  a1b2c3d4e5f6...                            │
+│  guest_id       │  v1%3A123456789                            │
+│  twid           │  u%3D1234567890123456789                   │
+│  ...            │  ...                                        │
+│  🔍 auth_token  │  🔑 c7bb02a0513ffae...d1b2c3 ←─ COPY THIS   │
+└──────────────────────────────────────────────────────────────┘
+       ↑                              ↑
+   Find this row              Double-click, Ctrl+C
+```
+
+**Steps:**
+1. Find the row with `auth_token` in the Name column
+2. **Double-click** the Value cell
+3. Press **Ctrl+C** (or Cmd+C on Mac) to copy
+4. **Important:** The value is long (like `c7bb02a0513ffae...`) - copy it fully
+
+### 2.4 Get kdt (Optional but Recommended)
+
+Same process as auth_token:
+1. In the same cookies table, find `kdt`
+2. Double-click Value, copy it
+3. This adds extra session stability
+
+---
+
+## Step 3: Run the Bot
 
 ```bash
 cd ~/Docs/project/deleter
+go build -o deleter .
 ./deleter
 ```
 
-You'll see a guided 5-step process:
+The bot will guide you through:
+1. **Paste** the line from extract.js
+2. **Paste** auth_token (when prompted)
+3. **Paste** kdt (optional)
+4. **Review** and save
 
-### Step 1: Extract Data from Browser
-
-The bot shows instructions:
-1. Open **x.com** in your browser and login
-2. Press **F12** → **Console** tab
-3. Copy contents of `extract.js` file (located in project folder)
-4. Paste into console and press Enter
-5. Copy the output line (format: `user_id|ct0|guest_id|query_id_user|query_id_delete`)
-6. Return to bot and press **ENTER**
-
-### Step 2: Paste Extracted Data
-
-Paste the line copied from browser console. The bot automatically parses:
-- ✅ User ID
-- ✅ ct0 (CSRF token)
-- ✅ guest_id
-- ✅ Query IDs
-
-### Step 3: Enter auth_token (Manual)
-
-The bot shows detailed instructions with mini-guide:
-
-**How to get auth_token:**
-1. In DevTools, click **Application** tab
-2. In left sidebar: **Storage** → **Cookies** → `https://x.com`
-3. Find **"auth_token"** in the table
-4. Double-click the **Value** cell and copy it
-5. Return to bot and paste it
-6. Press **ENTER**
-
-> **Why manual?** `auth_token` is an HttpOnly cookie - browsers hide it from JavaScript for security.
-
-### Step 4: Enter kdt (Optional)
-
-Same process as auth_token, but optional. The bot shows instructions again.
-
-### Step 5: Verify and Save
-
-Review all data displayed by the bot:
-- User ID
-- Tokens (truncated for security)
-- Query IDs
-
-Press **ENTER** to save, or **ESC** to go back and correct.
+### Navigation Keys
+| Key | Action |
+|-----|--------|
+| **ENTER** | Continue to next step |
+| **ESC** | Go back to fix mistakes |
 
 ---
 
-## The extract.js Script
+## 📁 What Gets Saved
 
-Located at `extract.js` in your project folder. It extracts from browser:
-- User ID (from twid cookie)
-- ct0 (CSRF token)
-- guest_id
-- Query IDs (from page source)
+After setup, `.session.json` is created in your project folder:
 
-**Output format:** `user_id|ct0|guest_id|query_id_user_tweets|query_id_delete_retweet`
-
----
-
-## What Gets Saved
-
-After setup, `.session.json` is created with:
 ```json
 {
   "user_id": "1234567890123456789",
@@ -85,58 +150,59 @@ After setup, `.session.json` is created with:
     "kdt": "uuvxTYKxBRz95qW4AAaBRadJC7BDDE0X...",
     "guest_id": "v1%3A176565822044635355"
   },
-  "headers": { ... },
   "query_id_user_tweets": "36rb3Xj3iJ64Q-9wKDjCcQ",
   "query_id_delete_retweet": "ZyZigVsNiFO6v1dEks1eWg",
-  "created_at": "2024-01-15T10:30:00Z",
-  "updated_at": "2024-01-15T10:30:00Z"
+  "created_at": "2024-01-15T10:30:00Z"
 }
 ```
 
-**Security:** 
-- File is saved locally in your project folder
-- Valid for **14 days**
-- Added to `.gitignore` — never committed
-- Contains sensitive data, keep it secure!
+⚠️ **Security:**
+- Valid for **14 days** (then you re-run setup)
+- File is **gitignored** — won't be committed
+- Keep it safe — contains your login tokens!
 
 ---
 
-## Navigation During Setup
+---
 
-| Key | Action |
-|-----|--------|
-| **ENTER** | Continue to next step |
-| **ESC** | Go back to previous step |
-| **Q** | Quit (on first screen) |
+## 🚨 Troubleshooting
 
-At any step you can press **ESC** to return and correct data.
+### "Session expired" or 401 error
+```bash
+rm .session.json
+./deleter  # Re-run setup wizard
+```
+
+### Can't find Application tab
+Use **Network tab** alternative:
+1. DevTools → Network tab
+2. Refresh page (F5)
+3. Click any request to `/graphql/`
+4. Scroll to Request Headers → find `cookie:`
+5. Copy `auth_token=...` value
+
+### auth_token is empty when I paste
+You must be **logged in** to x.com. Check that you see your feed, not login page.
+
+### "Invalid session data"
+Press **ESC** in the bot to go back and re-enter the value. Make sure you copied the full auth_token (it's long!).
 
 ---
 
-## Troubleshooting
+## 📝 Alternative: Manual .env Setup
 
-| Problem | Solution |
-|---------|----------|
-| "Session expired" | Re-run `./deleter` — it will guide you through setup again |
-| 401 error | Session expired, redo setup |
-| Can't find Application tab | Use Network tab → Request Headers → cookie |
-| auth_token empty | You must be logged into x.com |
-
----
-
-## Alternative: Using .env File
-
-If you prefer manual setup, create `.env` file:
+If you prefer not using the wizard:
 
 ```bash
 cp .env.example .env
+# Edit .env with your tokens
 ```
 
-Fill in manually. Program will load from `.env` and auto-save to `.session.json` for future runs.
+The bot will load from `.env` on first run and auto-save to `.session.json`.
 
 ---
 
-## Quick Commands
+## 💡 Quick Commands
 
 ```bash
 # Build
