@@ -2,6 +2,8 @@
 
 TUI app to auto-delete retweets by keywords.
 
+![Demo](assets/1.png)
+
 ## Quick Start
 
 ```bash
@@ -15,7 +17,7 @@ go build -o deleter .
 
 ### 1. Extract Data from Browser
 
-Open `x.com`, login, press **F12** → **Console**, paste `extract.js` contents, press Enter.
+Open `x.com`, login, press **F12** → **Console**, paste `extract.js` contents in Console, press Enter.
 
 Copy the output line: `user_id|ct0|guest_id|query_id|query_id`
 
@@ -49,7 +51,10 @@ rm .session.json && ./deleter  # Reset session
 
 Uses Twitter GraphQL API: fetches timeline → finds retweets matching keywords → deletes them.
 
+## Result
+
+![Result](assets/2.png)
+
 ## License
 
 MIT. Use at your own risk.
-# deleter
